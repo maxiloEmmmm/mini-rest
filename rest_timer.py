@@ -194,10 +194,16 @@ class RestTimer:
             s = self.idle_time % 60
             self.idle_hint.config(text=f"闲置了 {m}分{s}秒")
 
+        # 自动最小化窗口
+        self.root.iconify()
+
     def _start_rest(self):
         """开始休息 - 全屏粉色窗口"""
         self.is_resting = True
         self.remaining = self.REST_TIME
+
+        # 最小化主窗口
+        self.root.iconify()
 
         # 隐藏主窗口
         self.root.withdraw()
@@ -268,6 +274,9 @@ class RestTimer:
         self.root.deiconify()
         self.root.attributes('-topmost', True)
 
+        # 最小化窗口
+        self.root.iconify()
+
     def _reset_work(self):
         """重置25分钟工作时间"""
         self.is_resting = False
@@ -282,6 +291,9 @@ class RestTimer:
         if hasattr(self, 'rest_window') and self.rest_window.winfo_exists():
             self.rest_window.destroy()
             self.root.deiconify()
+
+        # 最小化窗口
+        self.root.iconify()
 
     def run(self):
         self.root.mainloop()
