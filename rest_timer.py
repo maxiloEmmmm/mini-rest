@@ -111,21 +111,29 @@ class RestTimer:
         self.root.after(1000, self._tick)
 
     def _show_reminder(self):
-        """显示5分钟后休息的提醒（全屏置顶，3秒后自动关闭）"""
+        """显示5分钟后休息的提醒（顶部小窗口，3秒后自动关闭）"""
         reminder = tk.Toplevel()
         reminder.configure(bg="#FFF8DC")  # 淡黄色背景
-        reminder.attributes('-fullscreen', True)
         reminder.attributes('-topmost', True)
+        reminder.overrideredirect(True)  # 无边框
+        reminder.resizable(False, False)
 
-        # 大字体显示
-        big_font = tkfont.Font(family="Arial", size=80, weight="bold")
+        # 小窗口尺寸
+        width, height = 200, 40
+        # 获取屏幕尺寸并居中于顶部
+        screen_width = self.root.winfo_screenwidth()
+        x = (screen_width - width) // 2
+        y = 0  # 顶部
+        reminder.geometry(f"{width}x{height}+{x}+{y}")
+
+        # 显示文字
         tk.Label(
             reminder,
             text="5分钟后休息",
-            font=big_font,
+            font=("Arial", 14, "bold"),
             bg="#FFF8DC",
             fg="#666666"
-        ).place(relx=0.5, rely=0.5, anchor="center")
+        ).pack(expand=True)
 
         # 3秒后自动关闭
         self.root.after(3000, reminder.destroy)
