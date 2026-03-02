@@ -12,9 +12,18 @@ class RestTimer:
     def __init__(self):
         self.root = tk.Tk()
         self.root.title("休息提醒")
-        self.root.geometry("300x150")
+        self.root.geometry("320x160")
         self.root.resizable(False, False)
         self.root.attributes('-topmost', True)
+        self.root.configure(bg="#FFF0F5")  # 淡粉色背景
+
+        # 二次元配色
+        self.COLOR_BG = "#FFF0F5"        # 淡粉背景
+        self.COLOR_PINK = "#FFB7C5"      # 樱花粉
+        self.COLOR_PURPLE = "#E6E6FA"    # 淡紫
+        self.COLOR_BLUE = "#B0E0E6"      # 粉蓝
+        self.COLOR_TEXT = "#6B5B73"      # 柔和紫灰
+        self.COLOR_ACCENT = "#FF69B4"    # 热粉强调色
 
         # 配置
         self.WORK_TIME = 25 * 60      # 25分钟
@@ -28,16 +37,36 @@ class RestTimer:
         # 启动计时
         self._tick()
 
+    def _create_rounded_button(self, parent, text, command, bg_color, fg_color="white"):
+        """创建圆角风格的二次元按钮"""
+        btn = tk.Button(
+            parent,
+            text=text,
+            command=command,
+            bg=bg_color,
+            fg=fg_color,
+            font=("Arial", 10, "bold"),
+            padx=15,
+            pady=5,
+            relief=tk.FLAT,
+            cursor="hand2",
+            activebackground=self.COLOR_ACCENT,
+            activeforeground="white"
+        )
+        return btn
+
     def _build_ui(self):
         # 时间显示区域（两行）
-        self.time_frame = tk.Frame(self.root)
-        self.time_frame.pack(pady=5)
+        self.time_frame = tk.Frame(self.root, bg=self.COLOR_BG)
+        self.time_frame.pack(pady=10)
 
         # 主倒计时
         self.time_label = tk.Label(
             self.time_frame,
             text=self._fmt(self.remaining),
-            font=("Arial", 28, "bold")
+            font=("Arial", 32, "bold"),
+            bg=self.COLOR_BG,
+            fg=self.COLOR_ACCENT
         )
         self.time_label.pack()
 
@@ -45,46 +74,39 @@ class RestTimer:
         self.idle_hint = tk.Label(
             self.time_frame,
             text="",
-            font=("Arial", 10),
-            fg="#666666"
+            font=("Arial", 9),
+            bg=self.COLOR_BG,
+            fg="#999999"
         )
         self.idle_hint.pack()
 
         # 按钮区域
-        self.btn_frame = tk.Frame(self.root)
-        self.btn_frame.pack(pady=5)
+        self.btn_frame = tk.Frame(self.root, bg=self.COLOR_BG)
+        self.btn_frame.pack(pady=8)
 
-        self.reset_btn = tk.Button(
+        self.reset_btn = self._create_rounded_button(
             self.btn_frame,
-            text="重置25分",
-            command=self._reset_work,
-            bg="#4CAF50",
-            fg="white",
-            font=("Arial", 10),
-            padx=10
+            "重置",
+            self._reset_work,
+            self.COLOR_PINK
         )
-        self.reset_btn.pack(side=tk.LEFT, padx=5)
+        self.reset_btn.pack(side=tk.LEFT, padx=8)
 
-        self.rest_btn = tk.Button(
+        self.rest_btn = self._create_rounded_button(
             self.btn_frame,
-            text="立即休息",
-            command=self._start_rest,
-            bg="#FF9800",
-            fg="white",
-            font=("Arial", 10),
-            padx=10
+            "休息",
+            self._start_rest,
+            self.COLOR_BLUE,
+            self.COLOR_TEXT
         )
-        self.rest_btn.pack(side=tk.LEFT, padx=5)
+        self.rest_btn.pack(side=tk.LEFT, padx=8)
 
         # 立即开始按钮（休息中按ESC后显示）
-        self.start_btn = tk.Button(
+        self.start_btn = self._create_rounded_button(
             self.root,
-            text="立即开始",
-            command=self._end_rest,
-            bg="#4CAF50",
-            fg="white",
-            font=("Arial", 10),
-            padx=10
+            "开始",
+            self._end_rest,
+            self.COLOR_ACCENT
         )
 
     def _fmt(self, seconds):
@@ -113,13 +135,13 @@ class RestTimer:
     def _show_reminder(self):
         """显示5分钟后休息的提醒（顶部小窗口，3秒后自动关闭，显示在活跃屏幕）"""
         reminder = tk.Toplevel()
-        reminder.configure(bg="#FFF8DC")  # 淡黄色背景
+        reminder.configure(bg=self.COLOR_PINK)  # 樱花粉背景
         reminder.attributes('-topmost', True)
         reminder.overrideredirect(True)  # 无边框
         reminder.resizable(False, False)
 
         # 小窗口尺寸
-        width, height = 200, 40
+        width, height = 220, 45
 
         # 获取主窗口位置和尺寸，确定当前所在屏幕
         root_x = self.root.winfo_x()
@@ -158,9 +180,9 @@ class RestTimer:
         tk.Label(
             reminder,
             text="5分钟后休息",
-            font=("Arial", 14, "bold"),
-            bg="#FFF8DC",
-            fg="#666666"
+            font=("Arial", 12, "bold"),
+            bg=self.COLOR_PINK,
+            fg="white"
         ).pack(expand=True)
 
         # 3秒后自动关闭
@@ -171,8 +193,8 @@ class RestTimer:
         self.is_resting = False
         self.is_idle = True
         self.idle_time = 0
-        self.time_label.config(fg="#FF0000", text="+00:00")
-        self.idle_hint.config(text="")  # 清除闲置提示
+        self.time_label.config(fg="#FF8FA3", text="+00:00")
+        self.idle_hint.config(text="点击或移动开始工作", fg="#CCCCCC")  # 提示文字
 
         # 关闭休息窗口
         if hasattr(self, 'rest_window') and self.rest_window.winfo_exists():
@@ -198,7 +220,7 @@ class RestTimer:
         self.idle_time += 1
         m = self.idle_time // 60
         s = self.idle_time % 60
-        self.time_label.config(text=f"+{m:02d}:{s:02d}")
+        self.time_label.config(text=f"+{m:02d}:{s:02d}", fg="#FF8FA3")
         self.idle_hint.config(text="")  # 清除闲置提示
         self.root.after(1000, self._tick_idle)
 
@@ -213,14 +235,14 @@ class RestTimer:
         self.is_resting = False
         self.remaining = self.WORK_TIME
 
-        # 设置工作倒计时显示
-        self.time_label.config(fg="black", text=self._fmt(self.remaining))
+        # 设置工作倒计时显示（二次元粉色）
+        self.time_label.config(fg=self.COLOR_ACCENT, text=self._fmt(self.remaining))
 
         # 显示闲置时长提示（如果>0，工作中一直显示）
         if self.idle_time > 0:
             m = self.idle_time // 60
             s = self.idle_time % 60
-            self.idle_hint.config(text=f"闲置了 {m}分{s}秒")
+            self.idle_hint.config(text=f"闲置了 {m}分{s}秒", fg="#999999")
 
         # 自动最小化窗口
         self.root.iconify()
@@ -236,9 +258,9 @@ class RestTimer:
         # 隐藏主窗口
         self.root.withdraw()
 
-        # 创建全屏休息窗口
+        # 创建全屏休息窗口（二次元柔和风格）
         self.rest_window = tk.Toplevel()
-        self.rest_window.configure(bg="#FFB6C1")  # 粉色
+        self.rest_window.configure(bg="#FFE4E1")  # 柔和的蜜桃粉
         self.rest_window.attributes('-fullscreen', True)
         self.rest_window.attributes('-topmost', True)
         self.rest_window.bind('<Key>', lambda e: None)  # 拦截键盘
@@ -248,16 +270,16 @@ class RestTimer:
         # 阻止关闭
         self.rest_window.protocol("WM_DELETE_WINDOW", lambda: None)
 
-        # 大字体
-        big_font = tkfont.Font(family="Arial", size=120, weight="bold")
+        # 二次元风格字体（较小较柔和）
+        big_font = tkfont.Font(family="Arial", size=42, weight="bold")
 
-        # 剩余时间显示
+        # 剩余时间显示（带柔和阴影效果）
         self.rest_time_label = tk.Label(
             self.rest_window,
             text=self._fmt(self.remaining),
             font=big_font,
-            bg="#FFB6C1",
-            fg="#333333"
+            bg="#FFE4E1",
+            fg="#FF8FA3"  # 柔和的粉色
         )
         self.rest_time_label.place(relx=0.5, rely=0.5, anchor="center")
 
@@ -281,8 +303,8 @@ class RestTimer:
             self.rest_window.destroy()
         self.root.deiconify()
         self.root.attributes('-topmost', True)
-        # 显示休息倒计时和立即开始按钮
-        self.time_label.config(fg="#FF9800", text=self._fmt(self.remaining))
+        # 显示休息倒计时和立即开始按钮（二次元蓝色）
+        self.time_label.config(fg=self.COLOR_BLUE, text=self._fmt(self.remaining))
         self.start_btn.pack(pady=5)
         self.btn_frame.pack_forget()
 
@@ -295,7 +317,7 @@ class RestTimer:
         self.is_idle = False
         self.remaining = self.WORK_TIME
         self.idle_time = 0  # 重置闲置时间
-        self.time_label.config(fg="black", text=self._fmt(self.remaining))
+        self.time_label.config(fg=self.COLOR_ACCENT, text=self._fmt(self.remaining))
         self.idle_hint.config(text="")  # 清除闲置提示
         self.start_btn.pack_forget()  # 隐藏立即开始按钮
         self.btn_frame.pack(pady=5)  # 显示正常按钮
@@ -310,7 +332,7 @@ class RestTimer:
         self.is_resting = False
         self.is_idle = False
         self.remaining = self.WORK_TIME
-        self.time_label.config(fg="black", text=self._fmt(self.remaining))
+        self.time_label.config(fg=self.COLOR_ACCENT, text=self._fmt(self.remaining))
         self.idle_hint.config(text="")  # 清除闲置提示
         self.start_btn.pack_forget()  # 隐藏立即开始按钮
         self.btn_frame.pack(pady=5)  # 显示正常按钮
