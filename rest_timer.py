@@ -111,7 +111,7 @@ class RestTimer:
         self.root.after(1000, self._tick)
 
     def _show_reminder(self):
-        """显示5分钟后休息的提醒（顶部小窗口，3秒后自动关闭）"""
+        """显示5分钟后休息的提醒（顶部小窗口，3秒后自动关闭，显示在活跃屏幕）"""
         reminder = tk.Toplevel()
         reminder.configure(bg="#FFF8DC")  # 淡黄色背景
         reminder.attributes('-topmost', True)
@@ -120,10 +120,38 @@ class RestTimer:
 
         # 小窗口尺寸
         width, height = 200, 40
-        # 获取屏幕尺寸并居中于顶部
-        screen_width = self.root.winfo_screenwidth()
-        x = (screen_width - width) // 2
-        y = 0  # 顶部
+
+        # 获取主窗口位置和尺寸，确定当前所在屏幕
+        root_x = self.root.winfo_x()
+        root_y = self.root.winfo_y()
+        root_width = self.root.winfo_width()
+        root_center_x = root_x + root_width // 2
+
+        # 获取所有屏幕信息（使用tkinter检测）
+        try:
+            # 尝试使用多显示器支持
+            self.root.update_idletasks()
+            # 获取主窗口所在的屏幕编号和尺寸
+            screen_num = self.root.winfo_screen().split('.')[-1] if '.' in self.root.winfo_screen() else '0'
+
+            # 获取屏幕宽度（单个屏幕）
+            screen_width = self.root.winfo_screenwidth()
+
+            # 计算主窗口中心点所在的屏幕边界
+            # 假设屏幕是水平排列的，计算当前在哪个屏幕
+            screen_index = root_center_x // screen_width
+            screen_left = screen_index * screen_width
+            screen_right = screen_left + screen_width
+
+            # 在当前屏幕顶部居中显示
+            x = screen_left + (screen_width - width) // 2
+            y = 0
+        except:
+            # 回退到单屏幕模式
+            screen_width = self.root.winfo_screenwidth()
+            x = (screen_width - width) // 2
+            y = 0
+
         reminder.geometry(f"{width}x{height}+{x}+{y}")
 
         # 显示文字
