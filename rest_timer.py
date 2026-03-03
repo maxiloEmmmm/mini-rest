@@ -8,6 +8,14 @@ import tkinter as tk
 from tkinter import font as tkfont
 import sys
 
+# 可选：系统托盘图标显示进度
+try:
+    from PIL import Image, ImageDraw, ImageFont
+    import pystray
+    HAS_TRAY = True
+except ImportError:
+    HAS_TRAY = False
+
 class RestTimer:
     def __init__(self):
         self.root = tk.Tk()
@@ -30,6 +38,11 @@ class RestTimer:
         self.REST_TIME = 5 * 60       # 5分钟
         self.remaining = self.WORK_TIME
         self.is_resting = False
+
+        # 系统托盘图标
+        self.tray_icon = None
+        if HAS_TRAY:
+            self._init_tray_icon()
 
         # 构建界面
         self._build_ui()
@@ -114,10 +127,85 @@ class RestTimer:
         s = seconds % 60
         return f"{m:02d}:{s:02d}"
 
+    def _init_tray_icon(self):
+        """初始化系统托盘图标"""
+        self.tray_icon = pystray.Icon("rest_timer")
+        self.tray_icon.icon = self._create_progress_icon(100)
+        self.tray_icon.title = "休息提醒"
+        self.tray_icon.menu = pystray.Menu(
+            pystray.MenuItem("显示", self._show_window),
+            pystray.MenuItem("退出", self._exit_app)
+        )
+        # 在后台线程启动托盘
+        import threading
+        self.tray_thread = threading.Thread(target=self.tray_icon.run, daemon=True)
+        self.tray_thread.start()
+
+    def _create_progress_icon(self, percentage):
+        """创建带进度百分比的图标"""
+        size = 64
+        img = Image.new('RGBA', (size, size), (255, 255, 255, 0))
+        draw = ImageDraw.Draw(img)
+
+        # 背景圆
+        bg_color = (255, 240, 245, 255)  # 淡粉色
+        draw.ellipse([2, 2, size-2, size-2], fill=bg_color, outline=(255, 183, 197), width=2)
+
+        # 进度弧
+        if percentage < 100:
+            import math
+            # 从顶部开始，顺时针
+            start_angle = -90
+            end_angle = start_angle + (360 * percentage / 100)
+            draw.pieslice([4, 4, size-4, size-4], start_angle, end_angle,
+                         fill=(255, 105, 180, 180))  # 热粉色半透明
+
+        # 文字
+        try:
+            font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 20)
+        except:
+            font = ImageFont.load_default()
+
+        text = f"{percentage:.0f}%"
+        bbox = draw.textbbox((0, 0), text, font=font)
+        text_width = bbox[2] - bbox[0]
+        text_height = bbox[3] - bbox[1]
+        x = (size - text_width) // 2
+        y = (size - text_height) // 2 - 2
+        draw.text((x, y), text, fill=(107, 91, 115, 255), font=font)  # 柔和紫灰
+
+        return img
+
+    def _update_tray_icon(self):
+        """更新托盘图标进度"""
+        if not HAS_TRAY or not self.tray_icon:
+            return
+        # 仅在工作倒计时期间显示进度
+        if not self.is_resting and not getattr(self, 'is_idle', False):
+            percentage = (self.remaining / self.WORK_TIME) * 100
+            self.tray_icon.icon = self._create_progress_icon(percentage)
+            self.tray_icon.title = f"休息提醒 - {self._fmt(self.remaining)}"
+        elif self.is_resting:
+            self.tray_icon.title = f"休息中 - {self._fmt(self.remaining)}"
+
+    def _show_window(self):
+        """从托盘显示窗口"""
+        self.root.deiconify()
+        self.root.lift()
+
+    def _exit_app(self):
+        """退出应用"""
+        if self.tray_icon:
+            self.tray_icon.stop()
+        self.root.quit()
+
     def _tick(self):
         if self.remaining > 0:
             self.remaining -= 1
             self.time_label.config(text=self._fmt(self.remaining))
+
+            # 更新托盘图标进度
+            self._update_tray_icon()
 
             # 距离休息还有5分钟时提醒
             if self.remaining == 5 * 60 and not self.is_resting:
@@ -175,6 +263,9 @@ class RestTimer:
         self.time_label.config(fg="#FF8FA3", text="+00:00")
         self.idle_hint.config(text="点击或移动开始工作", fg="#CCCCCC")  # 提示文字
 
+        # 更新托盘图标
+        self._update_tray_icon()
+
         # 关闭休息窗口
         if hasattr(self, 'rest_window') and self.rest_window.winfo_exists():
             self.rest_window.destroy()
@@ -226,10 +317,16 @@ class RestTimer:
         # 自动最小化窗口
         self.root.iconify()
 
+        # 更新托盘图标
+        self._update_tray_icon()
+
     def _start_rest(self):
         """开始休息 - 全屏粉色窗口"""
         self.is_resting = True
         self.remaining = self.REST_TIME
+
+        # 更新托盘图标
+        self._update_tray_icon()
 
         # 最小化主窗口
         self.root.iconify()
@@ -297,6 +394,9 @@ class RestTimer:
         self.remaining = self.WORK_TIME
         self.idle_time = 0  # 重置闲置时间
         self.time_label.config(fg=self.COLOR_ACCENT, text=self._fmt(self.remaining))
+
+        # 更新托盘图标
+        self._update_tray_icon()
         self.idle_hint.config(text="")  # 清除闲置提示
         self.start_btn.pack_forget()  # 隐藏立即开始按钮
         self.btn_frame.pack(pady=5)  # 显示正常按钮
@@ -305,6 +405,9 @@ class RestTimer:
 
         # 最小化窗口
         self.root.iconify()
+
+        # 更新托盘图标
+        self._update_tray_icon()
 
     def _reset_work(self):
         """重置25分钟工作时间"""
@@ -323,6 +426,9 @@ class RestTimer:
 
         # 最小化窗口
         self.root.iconify()
+
+        # 更新托盘图标
+        self._update_tray_icon()
 
     def run(self):
         self.root.mainloop()
